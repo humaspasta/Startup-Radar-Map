@@ -4,85 +4,136 @@ import sqlite3 as sql
 import dotenv as env
 import os
 from sentence_transformers import SentenceTransformer
-class Processing:
-
-    def __init__(self , data_path):
-        self.conn = sql.connect('')
-        env.load_dotenv('info.env') 
-        db_path = os.getenv('DB_FILE', 'startups.db')
 import requests as rq
+
+
 class Processing:
 
     def __init__(self , data_path):
-        self.conn = sql.connect('SonarResponses.db')
-        env.load_dotenv('info.env') #loading .env file
-        self.BASE_URL = "some url"
-        self.max_tokens = ...
-        self.temperature = 0
+        
+        env.load_dotenv('info.env') 
+        db_path = os.getenv('DB_FILE', 'meta.sqlite')
+        self.conn = sql.connect(db_path) #making connecting to response sql database
+        self.cursor = self.conn.cursor()
+
+        self.BASE_URL = "some url" #The url we use to make requests to SONAR API
+        self.max_tokens = 0 # The maximum number of tokens that SONAR should use per response
+        self.temperature = 0 #a value that determines how syntactically creative a response should be. 
+
         self.headers = {
-            "Authorization": f"Bearer {os.environ('API_KEY')}",
+            "Authorization": f"Bearer {os.environ['API_KEY']}",
             "Content-Type": "application/json"
-        }
+        } #api key and format of information sent in request
+
         self.data = pd.read_csv(data_path)
 
-        self.model = SentenceTranformer('all-MiniLM-L6-v2')
+        self.model = SentenceTransformer('all-MiniLM-L6-v2')
 
         self.vectors_path = 'vectors.parquet'
+        self.sentance_number = 0
 
-    def scrape(self, link:str):
+    def scrape(self, link:str) -> str:
+
         '''
         Gets a JSON file containing information of a given startup for caching.
-        Uses perplexity SONAR for retrieving website information. Stores information in sql database
+        Uses perplexity SONAR for retrieving website information. Stores information in sql database. 
         '''
-        other_data = {
-            "model": "sonar",
-            "messages": [
-                {
-                    "role": "system",
-                    "content": "You are a helpful assistant that provides interesting, accurate, and concise facts. Respond with a summary, a sector label, and all the sources used to come to the conclusions you did in your sector label, kept under 100 words."
-                },
-                {
-                    "role": "user",
-                    "content": f"Given the following link, provide a summary of the startup which includes what they do and their goal for the future. Also provide a label for the sector this company is in as well as all the sources you used. Feel free to use sources outside of this one "
-                }
-            ],
-            "max_tokens": self.max_tokens,
-            "temperature": self.temperature
-        }
-        response = rq.post(url=self.BASE_URL, data = other_data, json=other_data, timeout=30) # sending a request to perplexity API to retrieve data
-        response.raise_for_status()
         
-        json_text = json.dumps(response.json)
+        self.cursor.execute('''SELECT 1 FROM link WHERE link = ? LIMIT 1''' , (link))
+        result = self.cursor.fetchone() #fetches result of cursor execute
 
-        self.store_result(json_text)
+        if result: #if result is not null then the result already exists in the database and it will return that reuslt
+            return result
+        else:
+            other_data = {
+                "model": "sonar",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "You are a helpful assistant that provides interesting, accurate, and concise facts. Respond with a summary, a sector label, and all the sources used to come to the conclusions you did in your sector label, kept under 100 words."
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Given the following link {link}, provide a summary of the startup this link refers too which includes what they do and their goal for the future. Also provide a label for the sector this company is in as well as all the sources you used. Feel free to use sources outside of this one "
+                    }
+                ],
+                "response_format": {
+                    'type' : "json_schema",
+                    'json_schema' : {
+                        'schema' : {
+                            'type':'object',
+                            'properties' :
+                            {
+                                'Summary' : {'type' : "string"},
+                                'Sector': {'type' : 'string'},
+                                'Funding_Stage' :  {'type' : 'string'},
+                                'sources' : {
+                                    'type' : 'array',
+                                    'items' : {'type' : 'string'}
+                                }
+                            },
+                            'required' : ['Sumary' , 'Sector' , 'Funding_Stage']
+                        }
+                    }
+                },
+
+                "max_tokens": self.max_tokens,
+                "temperature": self.temperature
+            }
+
+            response = rq.post(url=self.BASE_URL, data = self.headers, json=other_data, timeout=30) # sending a request to perplexity API to retrieve data
+            response.raise_for_status()
+            
+            result = response.json()
+
+            structured_data = json.loads(result["choices"][0]["message"]["content"])
+
+
+            self.store(structured_data , link)
+
+            return structured_data['Summary']#returning summary string
       
 
           
     
-    def store_JSON(self, response:str):
+    def store(self, response:dict , link:str) -> None:
         '''
-        Stores the JSON file in a sqlite database
+        Stores the link , summary pair in sqlite database.
         '''
-        with self.conn.cursor() as cursor:
-            cursor.execut('CREATE TABLE IF NOT EXISTS str') #will come back to this later. This is for sure not the right way of storing. 
-
         
-
+        #creating the table where data will be stored in the database
+        create_table = """CREATE TABLE IF NOT EXISTS  startup_info ( 
+            link TEXT NOT NULL PRIMARY,
+            Summary TEXT NOT NULL,
+            Sector TEXT NOT NULL,
+            Funding_Stage TEXT NOT NULL,
+            Sources TEXT NOT NULL
+        );
+        """
+        self.cursor.execute(create_table) 
+        self.cursor.execute(''' 
+        INSERT INTO startup_info(link, summary,  Sector, Funding_Stage, sources) VALUES (? , ?, ?, ?)
+            ''' , (link , response['Summary'], response['Sector'], response['Funding_Stage'], response['sources'])) #caching summary using the link as the key
+        
+        self.conn.commit()#saving changes to database 
+    
+    
     def vectorize_all(self):
-        if 'summary' not in self.data.columns:
+        data = pd.read_sql_query('SELECT * FROM startup_info', self.conn) 
+        if 'summary' not in data.columns:
             raise ValueError("'summary' column's missing")
         
-        summaries = self.data['summary'].fillna("").tolist()
+        summaries = data['summary'].fillna("").tolist()
 
 
         vectors = self.model.encode(summaries)
 
         metadata_columns = ['statup_name', 'homepage_url', 'sector', 'funding_stage']
         for col in metadata_columns: 
-            if col not in self.data.columns:
+            if col not in data.columns:
                 raise ValueError(f"missing '{col}'")
             
-        metadata = self.data[metadata_columns]
+        metadata = data[metadata_columns]
 
         df_vectors = pd.DataFrame(vectors)
 
