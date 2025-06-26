@@ -17,7 +17,7 @@ class Processing:
         self.cursor = self.conn.cursor()
 
         self.BASE_URL = "some url" #The url we use to make requests to SONAR API
-        self.max_tokens = 0 # The maximum number of tokens that SONAR should use per response
+        self.max_tokens = 0 # The maximum number of tokens that SONAR should use per response # A token is about 4 words this means nothing will be returned in response to the call I believe...
         self.temperature = 0 #a value that determines how syntactically creative a response should be. 
 
         self.headers = {
@@ -119,33 +119,33 @@ class Processing:
     
     
     def vectorize_all(self):
-        data = pd.read_sql_query('SELECT * FROM startup_info', self.conn) 
+        data = pd.read_sql_query('SELECT * FROM startup_info', self.conn) # load startup info into a DF
         if 'summary' not in data.columns:
             raise ValueError("'summary' column's missing")
         
-        summaries = data['summary'].fillna("").tolist()
+        summaries = data['summary'].fillna("").tolist() # exctrs summaries into a list and fills NaNs wiht empty strings
 
 
         vectors = self.model.encode(summaries)
 
-        metadata_columns = ['statup_name', 'homepage_url', 'sector', 'funding_stage']
+        metadata_columns = ['statup_name', 'sector', 'funding_stage'] #  columns here are defined as the metadata
         for col in metadata_columns: 
             if col not in data.columns:
                 raise ValueError(f"missing '{col}'")
             
-        metadata = data[metadata_columns]
+        metadata = data[metadata_columns] # slicing out metadata cols into their own DF
 
-        df_vectors = pd.DataFrame(vectors)
+        df_vectors = pd.DataFrame(vectors) # turns the numpy arry of vectors into a new DF
 
-        concatenated = pd.concat([metadata.reset_index(drop=True), df_vectors], axis=1)
+        concatenated = pd.concat([metadata.reset_index(drop=True), df_vectors], axis=1) # horizontal concatenization of metadata and DFs
 
         concatenated.to_parquet(self.vectors_path, index=False)
 
 
     def store_vector(self):
         df = pd.read_parquet(self.vectors_path)
-        metadata = df.iloc[:, :4]
-        vectors = df.iloc[:, 4:]
+        metadata = df.iloc[:, :3] # slices off metadata
+        vectors = df.iloc[:, 3:] # remaining cols are the vect embeddings
 
         return vectors, metadata
     
