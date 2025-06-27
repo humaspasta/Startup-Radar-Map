@@ -54,7 +54,7 @@ class Processing:
                     },
                     {
                         "role": "user",
-                        "content": f"Given the following link {link}, provide a summary of the startup this link refers too which includes what they do and their goal for the future. Also provide a label for the sector this company is in as well as all the sources you used. Feel free to use sources outside of this one "
+                        "content": f"Given the following link {link}, provide a summary of the startup this link refers too which includes what they do and their goal for the future. Also provide a label for the sector this company, what funding stage they are in, as well as all the sources you used. Feel free to use sources outside of this one "
                     }
                 ],
                 "response_format": {
@@ -72,7 +72,7 @@ class Processing:
                                     'items' : {'type' : 'string'}
                                 }
                             },
-                            'required' : ['Sumary' , 'Sector' , 'Funding_Stage']
+                            'required' : ['Sumary' , 'Sector' , 'Funding_Stage' , 'sources']
                         }
                     }
                 },
