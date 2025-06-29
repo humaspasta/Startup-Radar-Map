@@ -64,6 +64,7 @@ class Processing:
                             'type':'object',
                             'properties' :
                             {
+                                'Name' : {'type' ,  'string'},
                                 'Summary' : {'type' : "string"},
                                 'Sector': {'type' : 'string'},
                                 'Funding_Stage' :  {'type' : 'string'},
@@ -72,7 +73,7 @@ class Processing:
                                     'items' : {'type' : 'string'}
                                 }
                             },
-                            'required' : ['Sumary' , 'Sector' , 'Funding_Stage' , 'sources']
+                            'required' : ['Name' , 'Sumary' , 'Sector' , 'Funding_Stage' , 'sources']
                         }
                     }
                 },
