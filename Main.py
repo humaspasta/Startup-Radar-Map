@@ -1,12 +1,13 @@
-from dash import Dash, dcc, html, Input, Output, callback
+from dash import Dash, dcc, html, Input, Output, callback, no_update
 from Display import Display_Data
+import dash_bootstrap_components as dbc
 import plotly.express as px
-
+import os
 import pandas as pd
 
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+external_stylesheets = [dbc.themes.CYBORG , 'https://codepen.io/chriddyp/pen/bWLwgP.css' , {'color' : 'white'}]
 
-app = Dash(__name__, external_stylesheets=external_stylesheets)
+app = Dash(__name__ , external_stylesheets=external_stylesheets)
 display_data = Display_Data()
 
 graphing_data = display_data.get_plottable_vectors()
@@ -18,21 +19,48 @@ df = pd.DataFrame({
     "y": [1,2,3,4],
     "Sources" : ["src1", "src2", 'src3', 'src4'],
     "Startup": ["startup1", "startup2", 'startup3', 'startup4'],
-    "Sector": ["apple", "apple", "orange", "orange"],
+    "Sector": ["Cybersecurity", "Cybersecurity", "Ecommerce", "Logistics"],
     "Summary" : ['summary1' , 'summary2', 'Summary3' , 'Summary4']
 })
 
 #creating scatter plot and adding lasso functionality
-fig = px.scatter(df, x="x", y="y", color="Sector", hover_data=['Sources' , "Startup" , "Sector", "Summary"], custom_data=['Startup' ,'Sector', 'Summary' , 'Sources'])
+fig = px.scatter(df, x="x", y="y", color="Sector", hover_data=['Sources' , "Startup" , "Sector", "Summary"], custom_data=['Startup' ,'Sector', 'Summary' , 'Sources'], template='plotly_dark')
 fig.update_layout(dragmode='lasso', clickmode="event+select") #responsible for 
-
 #setting layout of the app
-app.layout=html.Div(
+app.layout= html.Div(
         [
-    html.H1('Startup Graph'),
-    dcc.Graph(id='Graph' , figure=fig),
-    html.Div(id='display-points' , children=None)
-        ],
+            html.Div #this div contains the graph and the header
+            ( 
+                [
+                    html.H1('Startup Radar Map' , style={'color' : 'white'}),
+                    dcc.Graph(id='Graph' , figure=fig),
+                ]
+            )
+            ,
+              html.Div #this div contains the button and anything that will help with downloading
+            (
+                [
+                    html.Button(id='export-button', children='Export Data', n_clicks=None , style={'marginTop' : '20px' , 'marginLeft' : '10px'}),
+                    dcc.Download(id='download-helper')
+                ]
+            )
+        ,
+            html.Div
+            ( #this div contains the points that will be displayed when inside the lasso's bounds
+                [
+                    
+                    html.Div(
+                         id='display-points' , children=None , style={
+                        'display' : 'flex',
+                        'alignItems' : 'center',
+                        'flexWrap' : 'wrap',
+                        'gap' : '20px'
+                    } , 
+                   ),
+                ]
+            )
+        ]
+        ,
         style={'color' : 'black'}
     )
 
@@ -67,14 +95,18 @@ def display_selected_points(selectedData):
   
         elemsList.extend(
             [
-                html.H1(custom_data[0]),
+                html.Div(
+                    [
+                html.H1(custom_data[0] , style={'color' : 'white'}),
                 html.Ul(
                     [
-                    html.Li(id='Sector', children=custom_data[1], style={'color' : 'black'}),
-                    html.Li(id='Summary',children=custom_data[2], style={'color': 'red'}),
-                    html.Li(id='Sources', children=custom_data[3], style={'color' : 'yellow'})
+                    html.Li(id='Sector', children=custom_data[1], style={'color' : 'White'}),
+                    html.Li(id='Summary',children=custom_data[2], style={'color': 'lightblue'}),
+                    html.Li(id='Sources', children=custom_data[3], style={'color' : 'darkgreen'})
                     ]
                 )
+                    ]
+                , style={'background' : 'black' , 'padding' : '10px', 'borderRadius' : '30px' , 'marginLeft' : '10px' , 'marginRight' : '10px', 'marginTop' : '20px'}) #styling each information box
             ]
         ) #saving elements in required html structure in this list for display
 
@@ -82,6 +114,18 @@ def display_selected_points(selectedData):
     display_data.preserve_lasso(preserved_points) #saving raw points in Display object in case user wants to export
 
     return elemsList
+
+@callback(
+        Output(component_id='download-helper' , component_property='data'),
+        Output(component_id='export-button' , component_property='n_clicks'),
+        Input(component_id='export-button' , component_property='n_clicks'),
+        prevent_initial_call = True
+)
+def export_points(n_clicks):
+
+    if n_clicks:
+        return display_data.export_lasso() , None
+    return no_update , no_update
 
 if __name__ == '__main__':
     app.run(debug=True)
