@@ -8,6 +8,7 @@ import numpy as np
 import umap 
 from Processing import Processing
 
+import os
 class Display_Data:
 
     def __init__(self, data_path: str ='statup.csv'):
@@ -52,18 +53,21 @@ class Display_Data:
         '''
     def preserve_lasso(self , selected_points):
         '''
-        Retrieves and holds lasso data
+        Retrieves and stores lasso data
         '''
         self.lasso_data = selected_points
+        print(selected_points)
 
-    def export_lasso(self):
+    def export_lasso(self) -> None:
         '''
         Exports the set of points retrieved in the lasso. 
         '''
-        
-        pass
+        if len(self.lasso_data) != 0:
+            unique_values = list(set(tuple(row) for row in self.lasso_data))
 
-
+            data_interst = pd.DataFrame(unique_values , columns=['x' , 'y' , 'Startup Name' , 'Sector' , 'Summary' , 'Sources'])
+            data_interst.to_csv(os.path.join('.' , 'SelectedData.csv')) #create csv or overwrite it if it already exists
+            return dcc.send_file(os.path.join('.' , 'SelectedData.csv'))
 
     def update_log(self):
         '''
