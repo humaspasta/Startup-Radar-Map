@@ -1,18 +1,33 @@
+import datetime
 from dash import Dash , html, dcc
 import plotly.express as px
 import pandas as pd
+import os 
+import json 
+import numpy as np 
+import umap 
+from Processing import Processing
+
 class Display_Data:
 
-    def __init__(self):
+    def __init__(self, data_path: str ='statup.csv'):
+        self.processor = Processing(data_path)
         self.lasso_data = []
+        self.umap_model = umap.UMAP(n_components=2, random_state=42) #umap reducer for 2d projection fits once and then transforms 
+        
+        self._fitted = False 
 
-
-    
-    def project_vector_2d(self , vector):
-        '''
-        Projects a vector to 2d
-        '''
-        pass
+        self._projections=None
+        self._metadata = None
+    def project_vector_2d(self , vectors: np.ndarray)-> np.ndarray:
+        
+        arr = np.array(vectors)
+        if not self._fitted: # fits map on the first call then reuse for consistent projections
+            coords = self.umap_model.transform(arr)
+            self._fitted = True
+        else: 
+            coords = self.umap_model.transform(arr)
+        return coords
 
 
     def get_plottable_vectors(self) -> pd.DataFrame:
@@ -21,8 +36,15 @@ class Display_Data:
         X points and Y Points will be used for plotting in 2d and  Startup Name, Summary, Sector, Funding Stage, sources will be used
         in the hovercard to display information
         '''
-        pass
+        vectors_df, meta_df= self.processor.store_vector() # retrieve stored vects and metadata
 
+        coords = self.project_vector_2d(vectors_df.values) #proj all vects at once to 2d
+        df_coords = pd.DataFrame(coords, columns=['x','y'])
+
+        df_meta = meta_df.reset_index(drop=True) # align meta data 
+        df= pd.concat([df_coords, df_meta], axis=1)
+
+        return df
 
 
         '''
@@ -45,7 +67,12 @@ class Display_Data:
 
     def update_log(self):
         '''
-        
+        returns a simple one-line log saying when the main data file was last updated 
         '''
-        pass
-
+        path = self.processor.vectors_path ## will add more functionality to this..
+        if os.path.exist(path):
+            mtime = os.path.getmtime(path)
+            ts = datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M:%S")
+            return f"Data last ingested on **{ts}**"
+        else: 
+            return "No ingestion data found"
