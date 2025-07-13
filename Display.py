@@ -11,8 +11,8 @@ from Processing import Processing
 import os
 class Display_Data:
 
-    def __init__(self, data_path: str ='statup.csv'):
-        #self.processor = Processing(data_path)
+    def __init__(self, data_path: str ='startup.csv'):
+        self.processor = Processing(data_path)
         self.lasso_data = []
         self.umap_model = umap.UMAP(n_components=2, random_state=42) #umap reducer for 2d projection fits once and then transforms 
         
