@@ -3,6 +3,7 @@ import json
 import sqlite3 as sql
 import dotenv as env
 import os
+import pydantic
 from sentence_transformers import SentenceTransformer
 import requests as rq
 
@@ -15,10 +16,9 @@ class Processing:
         db_path = os.getenv('DB_FILE', 'meta.sqlite')
         self.conn = sql.connect(db_path) #making connecting to response sql database
         self.cursor = self.conn.cursor()
-
-        self.BASE_URL = "some url" #The url we use to make requests to SONAR API
-        self.max_tokens = 0 # The maximum number of tokens that SONAR should use per response # A token is about 4 words this means nothing will be returned in response to the call I believe...
-        self.temperature = 0 #a value that determines how syntactically creative a response should be. 
+        self.BASE_URL = 'https://api.perplexity.ai/chat/completions' #The url we use to make requests to SONAR API
+        self.max_tokens = 200 # The maximum number of tokens that SONAR should use per response # A token is about 4 words this means nothing will be returned in response to the call I believe...
+        self.temperature = 0.2 #a value that determines how syntactically creative a response should be. 
 
         self.headers = {
             "Authorization": f"Bearer {os.environ['API_KEY']}",
@@ -45,18 +45,20 @@ class Processing:
         if result: #if result is not null then the result already exists in the database and it will return that reuslt
             return result
         else:
+            #Providing information to sonar on what is needed, how to format the information requested, and the amount of resources it should consume.
             other_data = {
                 "model": "sonar",
                 "messages": [
                     {
                         "role": "system",
-                        "content": "You are a helpful assistant that provides interesting, accurate, and concise facts. Respond with a summary, a sector label, and all the sources used to come to the conclusions you did in your sector label, kept under 100 words."
+                        "content": "You are a professional buisness analyst. For any given link to a company, provide a structured analysis including: the company name; the industry sector; a summary on their key products and services, recent performance, and strengths and weaknesses; and the funding stage they are in. Keep it under 200 words."
                     },
                     {
                         "role": "user",
-                        "content": f"Given the following link {link}, provide a summary of the startup this link refers too which includes what they do and their goal for the future. Also provide a label for the sector this company, what funding stage they are in, as well as all the sources you used. Feel free to use sources outside of this one "
+                        "content": f"Analyze the follwing link {link}"
                     }
-                ],
+                ]
+                ,
                 "response_format": {
                     'type' : "json_schema",
                     'json_schema' : {
@@ -77,9 +79,10 @@ class Processing:
                         }
                     }
                 },
-
                 "max_tokens": self.max_tokens,
-                "temperature": self.temperature
+                "temperature": self.temperature,
+                'search_mode' : 'academic',
+                'search_after_date' : '1/1/2022',
             }
 
             response = rq.post(url=self.BASE_URL, data = self.headers, json=other_data, timeout=30) # sending a request to perplexity API to retrieve data
@@ -99,7 +102,12 @@ class Processing:
     
     def store(self, response:dict , link:str) -> None:
         '''
-        Stores the link , summary pair in sqlite database.
+        Stores the link along with detailed information about the startup in that link in sqlite database.
+        link: The link analyzed
+        Summary: Summary of the startup
+        Sector: Sector of the startup
+        Funding_Stage: The startups current funding state
+        Sources: A list of sources used in Sonar's analysis of the startup
         '''
         
         #creating the table where data will be stored in the database
@@ -113,7 +121,7 @@ class Processing:
         """
         self.cursor.execute(create_table) 
         self.cursor.execute(''' 
-        INSERT INTO startup_info(link, summary,  Sector, Funding_Stage, sources) VALUES (? , ?, ?, ?)
+        INSERT INTO startup_info(link, summary,  Sector, Funding_Stage, sources) VALUES (? , ?, ?, ?, ?)
             ''' , (link , response['Summary'], response['Sector'], response['Funding_Stage'], response['sources'])) #caching summary using the link as the key
         
         self.conn.commit()#saving changes to database 
