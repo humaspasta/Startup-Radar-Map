@@ -1,3 +1,4 @@
+import dash
 from dash import Dash, dcc, html, Input, Output, callback, no_update
 from Display import Display_Data
 import dash_bootstrap_components as dbc
@@ -5,12 +6,12 @@ import plotly.express as px
 import os
 import pandas as pd
 
-external_stylesheets = [dbc.themes.CYBORG , 'https://codepen.io/chriddyp/pen/bWLwgP.css' , {'color' : 'white'}]
+external_stylesheets = [dbc.themes.DARKLY , 'https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = Dash(__name__ , external_stylesheets=external_stylesheets)
 display_data = Display_Data()
 
-graphing_data = display_data.get_plottable_vectors()
+#graphing_data = display_data.get_plottable_vectors()
 
 
 #plotting with a sample dataframe
@@ -81,7 +82,7 @@ def display_selected_points(selectedData):
     )
 ])
     '''
-
+    
     preserved_points = [] #points to preserve
 
     if selectedData == None:

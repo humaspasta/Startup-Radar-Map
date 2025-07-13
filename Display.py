@@ -12,7 +12,7 @@ import os
 class Display_Data:
 
     def __init__(self, data_path: str ='statup.csv'):
-        self.processor = Processing(data_path)
+        #self.processor = Processing(data_path)
         self.lasso_data = []
         self.umap_model = umap.UMAP(n_components=2, random_state=42) #umap reducer for 2d projection fits once and then transforms 
         
@@ -46,7 +46,7 @@ class Display_Data:
         df= pd.concat([df_coords, df_meta], axis=1)
 
         return df
-
+        
 
         '''
         I will work on both lasso methods
