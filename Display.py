@@ -48,9 +48,6 @@ class Display_Data:
         return df
         
 
-        '''
-        I will work on both lasso methods
-        '''
     def preserve_lasso(self , selected_points):
         '''
         Retrieves and stores lasso data
