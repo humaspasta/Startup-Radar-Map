@@ -3,7 +3,6 @@ import json
 import sqlite3 as sql
 import dotenv as env
 import os
-import pydantic
 from sentence_transformers import SentenceTransformer
 import requests as rq
 
@@ -112,7 +111,7 @@ class Processing:
         
         #creating the table where data will be stored in the database
         create_table = """CREATE TABLE IF NOT EXISTS  startup_info ( 
-            link TEXT NOT NULL PRIMARY,
+            link TEXT NOT NULL PRIMARY KEY,
             Summary TEXT NOT NULL,
             Sector TEXT NOT NULL,
             Funding_Stage TEXT NOT NULL,
@@ -120,9 +119,8 @@ class Processing:
         );
         """
         self.cursor.execute(create_table) 
-        self.cursor.execute(''' 
-        INSERT INTO startup_info(link, summary,  Sector, Funding_Stage, sources) VALUES (? , ?, ?, ?, ?)
-            ''' , (link , response['Summary'], response['Sector'], response['Funding_Stage'], response['sources'])) #caching summary using the link as the key
+        self.cursor.execute('''INSERT INTO startup_info(link, summary,  Sector, Funding_Stage, sources) VALUES (? , ?, ?, ?, ?)''' ,
+                             (link , response['Summary'], response['Sector'], response['Funding_Stage'], response['sources'])) #caching summary using the link as the key
         
         self.conn.commit()#saving changes to database 
     

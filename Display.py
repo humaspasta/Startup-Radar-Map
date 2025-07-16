@@ -20,6 +20,7 @@ class Display_Data:
 
         self._projections=None
         self._metadata = None
+        
     def project_vector_2d(self , vectors: np.ndarray)-> np.ndarray:
         
         arr = np.array(vectors)
