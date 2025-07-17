@@ -7,25 +7,29 @@ import os
 import pandas as pd
 
 external_stylesheets = [dbc.themes.DARKLY , 'https://codepen.io/chriddyp/pen/bWLwgP.css']
+display_data = Display_Data(data_path=os.path.join('.' , 'startups.csv'))
+display_data.scrape_all_links()
+vectors = display_data.get_plottable_vectors()
 
 app = Dash(__name__ , external_stylesheets=external_stylesheets)
-display_data = Display_Data()
+
 
 #graphing_data = display_data.get_plottable_vectors()
 
 
+
 #plotting with a sample dataframe
-df = pd.DataFrame({
-    "x": [1,2,1,2],
-    "y": [1,2,3,4],
-    "Sources" : ["src1", "src2", 'src3', 'src4'],
-    "Startup": ["startup1", "startup2", 'startup3', 'startup4'],
-    "Sector": ["Cybersecurity", "Cybersecurity", "Ecommerce", "Logistics"],
-    "Summary" : ['summary1' , 'summary2', 'Summary3' , 'Summary4']
-})
+# df = pd.DataFrame({
+#     "x": [1,2,1,2],
+#     "y": [1,2,3,4],
+#     "Sources" : ["src1", "src2", 'src3', 'src4'],
+#     "Startup": ["startup1", "startup2", 'startup3', 'startup4'],
+#     "Sector": ["Cybersecurity", "Cybersecurity", "Ecommerce", "Logistics"],
+#     "Summary" : ['summary1' , 'summary2', 'Summary3' , 'Summary4']
+# })
 
 #creating scatter plot and adding lasso functionality
-fig = px.scatter(df, x="x", y="y", color="Sector", hover_data=['Sources' , "Startup" , "Sector", "Summary"], custom_data=['Startup' ,'Sector', 'Summary' , 'Sources'], template='plotly_dark')
+fig = px.scatter(vectors, x="x", y="y", color="Sector", hover_data=["Name" , "Sector", 'Summary', "Funding_Stage"], custom_data=['Name' ,'Sector', 'Funding_Stage', 'Summary'], template='plotly_dark')
 fig.update_layout(dragmode='lasso', clickmode="event+select") #responsible for 
 #setting layout of the app
 app.layout= html.Div(
@@ -128,5 +132,8 @@ def export_points(n_clicks):
         return display_data.export_lasso() , None
     return no_update , no_update
 
+
+
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False, use_reloader=False)

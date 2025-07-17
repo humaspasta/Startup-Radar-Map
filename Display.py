@@ -12,20 +12,21 @@ import os
 class Display_Data:
 
     def __init__(self, data_path: str ='startup.csv'):
-        self.processor = Processing(data_path)
+        self.processor = Processing()
         self.lasso_data = []
         self.umap_model = umap.UMAP(n_components=2, random_state=42) #umap reducer for 2d projection fits once and then transforms 
         
         self._fitted = False 
-
+        self.data = pd.read_csv(data_path)
         self._projections=None
         self._metadata = None
+        self.processor.vectorize_all()
         
     def project_vector_2d(self , vectors: np.ndarray)-> np.ndarray:
         
         arr = np.array(vectors)
         if not self._fitted: # fits map on the first call then reuse for consistent projections
-            coords = self.umap_model.transform(arr)
+            coords = self.umap_model.fit_transform(arr)
             self._fitted = True
         else: 
             coords = self.umap_model.transform(arr)
@@ -63,7 +64,7 @@ class Display_Data:
         if len(self.lasso_data) != 0:
             unique_values = list(set(tuple(row) for row in self.lasso_data))
 
-            data_interst = pd.DataFrame(unique_values , columns=['x' , 'y' , 'Startup Name' , 'Sector' , 'Summary' , 'Sources'])
+            data_interst = pd.DataFrame(unique_values , columns=['x' , 'y' , 'Summary', 'Name' , 'Sector' , 'Sources'])
             data_interst.to_csv(os.path.join('.' , 'SelectedData.csv')) #create csv or overwrite it if it already exists
             return dcc.send_file(os.path.join('.' , 'SelectedData.csv'))
 
@@ -78,3 +79,13 @@ class Display_Data:
             return f"Data last ingested on **{ts}**"
         else: 
             return "No ingestion data found"
+
+    def scrape_all_links(self) -> None:
+        '''
+        Scrapes all links in startup.csv file and saves them to database using scrape method in Processing(). 
+        '''
+        links = self.data['Links']
+        for link in links:
+            
+            self.processor.scrape(link)
+           

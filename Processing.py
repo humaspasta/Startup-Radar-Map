@@ -9,7 +9,7 @@ import requests as rq
 
 class Processing:
 
-    def __init__(self , data_path):
+    def __init__(self):
         
         env.load_dotenv('info.env') 
         db_path = os.getenv('DB_FILE', 'meta.sqlite')
@@ -24,12 +24,24 @@ class Processing:
             "Content-Type": "application/json"
         } #api key and format of information sent in request
 
-        self.data = pd.read_csv(data_path)
+       
 
         self.model = SentenceTransformer('all-MiniLM-L6-v2')
 
         self.vectors_path = 'vectors.parquet'
         self.sentance_number = 0
+
+        create_table = """CREATE TABLE IF NOT EXISTS  startup_info ( 
+            link TEXT NOT NULL PRIMARY KEY,
+            Summary TEXT NOT NULL,
+            Name TEXT NOT NULL,
+            Sector TEXT NOT NULL,
+            Funding_Stage TEXT NOT NULL,
+            Sources TEXT NOT NULL
+        );
+        """
+        self.cursor.execute(create_table) 
+        self.conn.commit()
 
     def scrape(self, link:str) -> str:
 
@@ -38,7 +50,7 @@ class Processing:
         Uses perplexity SONAR for retrieving website information. Stores information in sql database. 
         '''
         
-        self.cursor.execute('''SELECT 1 FROM link WHERE link = ? LIMIT 1''' , (link))
+        self.cursor.execute('''SELECT 1 FROM startup_info WHERE link = ? LIMIT 1''' , (link,))
         result = self.cursor.fetchone() #fetches result of cursor execute
 
         if result: #if result is not null then the result already exists in the database and it will return that reuslt
@@ -65,16 +77,16 @@ class Processing:
                             'type':'object',
                             'properties' :
                             {
-                                'Name' : {'type' ,  'string'},
+                                'Name' : {'type' :  'string'},
                                 'Summary' : {'type' : "string"},
                                 'Sector': {'type' : 'string'},
                                 'Funding_Stage' :  {'type' : 'string'},
                                 'sources' : {
                                     'type' : 'array',
-                                    'items' : {'type' : 'string'}
+                                   
                                 }
                             },
-                            'required' : ['Name' , 'Sumary' , 'Sector' , 'Funding_Stage' , 'sources']
+                            'required' : ['Name' , 'Summary' , 'Sector' , 'Funding_Stage' , 'sources']
                         }
                     }
                 },
@@ -83,13 +95,20 @@ class Processing:
                 'search_mode' : 'academic',
                 'search_after_date' : '1/1/2022',
             }
-
-            response = rq.post(url=self.BASE_URL, data = self.headers, json=other_data, timeout=30) # sending a request to perplexity API to retrieve data
-            response.raise_for_status()
+            try:
+                response = rq.request('POST', url=self.BASE_URL, headers = self.headers, json=other_data, timeout=8) # sending a request to perplexity API to retrieve data
+                response.raise_for_status()
+            except:
+                print('Time our occured. Moving on to next link.')
+                return
             
             result = response.json()
-
-            structured_data = json.loads(result["choices"][0]["message"]["content"])
+            try:
+                structured_data = json.loads(result["choices"][0]["message"]["content"])
+            except:
+                print('Malformed Json, skipping')
+                return
+        
 
 
             self.store(structured_data , link)
@@ -110,32 +129,23 @@ class Processing:
         '''
         
         #creating the table where data will be stored in the database
-        create_table = """CREATE TABLE IF NOT EXISTS  startup_info ( 
-            link TEXT NOT NULL PRIMARY KEY,
-            Summary TEXT NOT NULL,
-            Sector TEXT NOT NULL,
-            Funding_Stage TEXT NOT NULL,
-            Sources TEXT NOT NULL
-        );
-        """
-        self.cursor.execute(create_table) 
-        self.cursor.execute('''INSERT INTO startup_info(link, summary,  Sector, Funding_Stage, sources) VALUES (? , ?, ?, ?, ?)''' ,
-                             (link , response['Summary'], response['Sector'], response['Funding_Stage'], response['sources'])) #caching summary using the link as the key
+        self.cursor.execute('''INSERT INTO startup_info(link, Summary,  Name, Sector, Funding_Stage, sources) VALUES (? , ?, ?, ?, ?, ?)''' ,
+                             (link , response['Summary'], response['Name'], response['Sector'], response['Funding_Stage'], str(response['sources'])[1:-1])) #caching summary using the link as the key
         
         self.conn.commit()#saving changes to database 
     
     
     def vectorize_all(self):
         data = pd.read_sql_query('SELECT * FROM startup_info', self.conn) # load startup info into a DF
-        if 'summary' not in data.columns:
+        if 'Summary' not in data.columns:
             raise ValueError("'summary' column's missing")
         
-        summaries = data['summary'].fillna("").tolist() # exctrs summaries into a list and fills NaNs wiht empty strings
+        summaries = data['Summary'].fillna("").tolist() # exctrs summaries into a list and fills NaNs wiht empty strings
 
 
         vectors = self.model.encode(summaries)
 
-        metadata_columns = ['statup_name', 'sector', 'funding_stage'] #  columns here are defined as the metadata
+        metadata_columns = ['Name', 'Sector', 'Summary' , 'Funding_Stage'] #  columns here are defined as the metadata
         for col in metadata_columns: 
             if col not in data.columns:
                 raise ValueError(f"missing '{col}'")
@@ -146,13 +156,14 @@ class Processing:
 
         concatenated = pd.concat([metadata.reset_index(drop=True), df_vectors], axis=1) # horizontal concatenization of metadata and DFs
 
+        concatenated.columns = concatenated.columns.map(str) #converting column to strings for parqet
         concatenated.to_parquet(self.vectors_path, index=False)
 
 
     def store_vector(self):
         df = pd.read_parquet(self.vectors_path)
-        metadata = df.iloc[:, :3] # slices off metadata
-        vectors = df.iloc[:, 3:] # remaining cols are the vect embeddings
+        metadata = df.iloc[:, :4] # slices off metadata
+        vectors = df.iloc[:, 4:] # remaining cols are the vect embeddings
 
         return vectors, metadata
     
