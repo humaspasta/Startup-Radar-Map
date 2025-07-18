@@ -1,2 +1,4 @@
 # Startup-Radar-Map
 
+Python tool that turns a plain list of startup websites into an interactive 2‑D map that shows
+how similar the companies are and lets a user explore or export clusters. 
