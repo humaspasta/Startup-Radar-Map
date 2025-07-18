@@ -46,8 +46,10 @@ app.layout= html.Div(
             (
                 [
                     html.Button(id='export-button', children='Export Data', n_clicks=None , style={'marginTop' : '20px' , 'marginLeft' : '10px'}),
-                    dcc.Download(id='download-helper')
-                ]
+                    dcc.Download(id='download-helper'),
+                    
+                ],
+                
             )
         ,
             html.Div
@@ -131,7 +133,6 @@ def export_points(n_clicks):
     if n_clicks:
         return display_data.export_lasso() , None
     return no_update , no_update
-
 
 
 

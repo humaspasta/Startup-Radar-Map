@@ -55,7 +55,6 @@ class Display_Data:
         Retrieves and stores lasso data
         '''
         self.lasso_data = selected_points
-        print(selected_points)
 
     def export_lasso(self) -> None:
         '''
