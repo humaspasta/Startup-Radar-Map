@@ -87,4 +87,12 @@ class Display_Data:
         for link in links:
             
             self.processor.scrape(link)
-           
+    
+    def clear_cache(self) -> None:
+        '''
+        Clears the startup_data table in the sql database
+        '''
+        self.processor.cursor.execute('''
+            DELETE FROM startup_info
+        ''')
+        self.processor.conn.commit()
