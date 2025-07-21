@@ -29,7 +29,7 @@ app = Dash(__name__ , external_stylesheets=external_stylesheets)
 # })
 
 #creating scatter plot and adding lasso functionality
-fig = px.scatter(vectors, x="x", y="y", color="Sector", hover_data=["Name" , "Sector", 'Summary', "Funding_Stage"], custom_data=['Name' ,'Sector', 'Funding_Stage', 'Summary'], template='plotly_dark')
+fig = px.scatter(vectors, x="x", y="y", color="Sector", hover_data=["Name" , "Sector", "Funding_Stage"], custom_data=['Name' ,'Sector', 'Funding_Stage', 'Summary'], template='plotly_dark')
 fig.update_layout(dragmode='lasso', clickmode="event+select") #responsible for 
 #setting layout of the app
 app.layout= html.Div(
