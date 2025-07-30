@@ -8,6 +8,7 @@ import pandas as pd
 
 external_stylesheets = [dbc.themes.DARKLY , 'https://codepen.io/chriddyp/pen/bWLwgP.css']
 display_data = Display_Data(data_path=os.path.join('.' , 'startups.csv'))
+
 display_data.scrape_all_links()
 vectors = display_data.get_plottable_vectors()
 
@@ -42,16 +43,25 @@ app.layout= html.Div(
                 ]
             )
             ,
-              html.Div #this div contains the button and anything that will help with downloading
-            (
+            html.Div(
                 [
-                    html.Button(id='export-button', children='Export Data', n_clicks=None , style={'marginTop' : '20px' , 'marginLeft' : '10px'}),
-                    dcc.Download(id='download-helper'),
-                    
-                ],
-                
-            )
-        ,
+                    html.Div(
+                        [
+                            html.Button(id='export-button', children='Export Data', n_clicks=None,
+                                        style={'marginRight': '10px'}),
+                            html.Button(id='clear-cache-button', children='Clear Cache', n_clicks=0,
+                                        style={'backgroundColor': 'red', 'color': 'white'}),
+                            dcc.Download(id='download-helper'),
+                        ],
+                        style={'display': 'flex', 'flexDirection': 'row', 'alignItems': 'center',
+                            'marginTop': '20px', 'marginLeft': '10px'}
+                    ),
+                    html.Div(
+                        id='clear-cache-status',
+                        style={'marginLeft': '10px', 'marginTop': '10px', 'color': 'orange'}
+                    )
+                ]
+            ),
             html.Div
             ( #this div contains the points that will be displayed when inside the lasso's bounds
                 [
@@ -134,7 +144,14 @@ def export_points(n_clicks):
         return display_data.export_lasso() , None
     return no_update , no_update
 
-
+@callback(
+    Output('clear-cache-status', 'children'),
+    Input('clear-cache-button', 'n_clicks'),
+    prevent_initial_call=True
+)
+def handle_clear_cache(n_clicks):
+    display_data.clear_cache()
+    return "Cache cleared. Re-scraping will now fetch fresh summaries."
 
 if __name__ == '__main__':
     app.run(debug=False, use_reloader=False)
