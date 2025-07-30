@@ -62,7 +62,7 @@ class Processing:
                 "messages": [
                     {
                         "role": "system",
-                        "content": "You are a professional buisness analyst. For any given link to a company, provide a structured analysis including: the company name; the industry sector; a summary on their key products and services, recent performance, and strengths and weaknesses; and the funding stage they are in. Keep it under 200 words."
+                        "content": "You are a professional buisness analyst. For any given link to a company, provide a structured analysis including: the company name; the industry sector; a summary on their key products and services, recent performance, and strengths and weaknesses; and the funding stage they are in. Keep it under 200 words. If you cannot find a piece of information. Simply state not applicable"
                     },
                     {
                         "role": "user",
