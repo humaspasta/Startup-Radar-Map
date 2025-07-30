@@ -8,6 +8,8 @@ import pandas as pd
 
 external_stylesheets = [dbc.themes.DARKLY , 'https://codepen.io/chriddyp/pen/bWLwgP.css']
 display_data = Display_Data(data_path=os.path.join('.' , 'startups.csv'))
+
+print('...Scraping Links...')
 display_data.scrape_all_links()
 vectors = display_data.get_plottable_vectors()
 
@@ -29,7 +31,7 @@ app = Dash(__name__ , external_stylesheets=external_stylesheets)
 # })
 
 #creating scatter plot and adding lasso functionality
-fig = px.scatter(vectors, x="x", y="y", color="Sector", hover_data=["Name" , "Sector", "Funding_Stage"], custom_data=['Name' ,'Sector', 'Funding_Stage', 'Summary'], template='plotly_dark')
+fig = px.scatter(vectors, x="x", y="y", color="Sector", hover_data=["Name" , "Sector", "Funding_Stage"], custom_data=['Name' ,'Sector', 'Funding_Stage', 'Summary', 'Sources'], template='plotly_dark')
 fig.update_layout(dragmode='lasso', clickmode="event+select") #responsible for 
 #setting layout of the app
 app.layout= html.Div(
@@ -108,8 +110,9 @@ def display_selected_points(selectedData):
                 html.Ul(
                     [
                     html.Li(id='Sector', children=custom_data[1], style={'color' : 'White'}),
-                    html.Li(id='Summary',children=custom_data[2], style={'color': 'lightblue'}),
-                    html.Li(id='Sources', children=custom_data[3], style={'color' : 'darkgreen'})
+                    html.Li(id='Funding Stage',children=custom_data[2], style={'color': 'lightblue'}),
+                    html.Li(id='Summary', children=custom_data[3], style={'color' : 'darkgreen'}),
+                    html.Li(id='Sources', children=custom_data[4], style={'color' : 'beige'})
                     ]
                 )
                     ]
