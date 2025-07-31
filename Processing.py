@@ -83,7 +83,7 @@ class Processing:
                                 'Sector': {'type' : 'string'},
                                 'Funding_Stage' :  {'type' : 'string'},
                                 'sources' : {
-                                    'type' : 'array',
+                                    'type' : 'string',
                                    
                                 }
                             },
@@ -144,7 +144,7 @@ class Processing:
         
         #creating the table where data will be stored in the database
         self.cursor.execute('''INSERT INTO startup_info(link, Summary,  Name, Sector, Funding_Stage, sources) VALUES (? , ?, ?, ?, ?, ?)''' ,
-                             (link , response['Summary'], response['Name'], response['Sector'], response['Funding_Stage'], str(response['sources'])[1:-1])) #caching summary using the link as the key
+                             (link , response['Summary'], response['Name'], response['Sector'], response['Funding_Stage'], response['sources'])) #caching summary using the link as the key
         
         self.conn.commit()#saving changes to database 
     
@@ -159,7 +159,7 @@ class Processing:
 
         vectors = self.model.encode(summaries)
 
-        metadata_columns = ['Name', 'Sector', 'Summary' , 'Funding_Stage'] #  columns here are defined as the metadata
+        metadata_columns = ['Name', 'Sector', 'Summary' , 'Funding_Stage', 'Sources'] #  columns here are defined as the metadata
         for col in metadata_columns: 
             if col not in data.columns:
                 raise ValueError(f"missing '{col}'")
@@ -176,8 +176,8 @@ class Processing:
 
     def store_vector(self):
         df = pd.read_parquet(self.vectors_path)
-        metadata = df.iloc[:, :4] # slices off metadata
-        vectors = df.iloc[:, 4:] # remaining cols are the vect embeddings
+        metadata = df.iloc[:, :5] # slices off metadata
+        vectors = df.iloc[:, 5:] # remaining cols are the vect embeddings
 
         return vectors, metadata
     

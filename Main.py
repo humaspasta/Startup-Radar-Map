@@ -153,6 +153,7 @@ def export_points(n_clicks):
 )
 def handle_clear_cache(n_clicks):
     display_data.clear_cache()
+    display_data.scrape_all_links()
     return "Cache cleared. Re-scraping will now fetch fresh summaries."
 
 if __name__ == '__main__':
