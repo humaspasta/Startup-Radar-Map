@@ -5,6 +5,7 @@ import dotenv as env
 import os
 from sentence_transformers import SentenceTransformer
 import requests as rq
+import re
 
 
 class Processing:
@@ -96,18 +97,31 @@ class Processing:
                 'search_after_date' : '1/1/2022',
             }
             try:
-                response = rq.request('POST', url=self.BASE_URL, headers = self.headers, json=other_data, timeout=8) # sending a request to perplexity API to retrieve data
+                response = rq.request('POST', url=self.BASE_URL, headers=self.headers, json=other_data, timeout=30)
                 response.raise_for_status()
-            except:
-                print('Time our occured. Moving on to next link.')
+            except Exception as e:
+                print(f"[ERROR] Request failed for {link}: {e}")
                 return
-            
+
             result = response.json()
-            try:
-                structured_data = json.loads(result["choices"][0]["message"]["content"])
-            except:
-                print('Malformed Json, skipping')
+            if "choices" not in result or not result["choices"]:
+                print(f"[ERROR] No choices returned for {link}. Full result:\n{result}")
                 return
+
+            raw_content = result["choices"][0]["message"]["content"]
+
+            try:
+                # Fix common formatting issues
+                clean_content = re.sub(r"[^\x00-\x7F]+", '', raw_content)  # remove non-ASCII
+                clean_content = clean_content.replace("’", "'")            # fix smart quote
+                clean_content = clean_content.replace("\\", "")            # remove stray backslashes
+                structured_data = json.loads(clean_content)
+            except Exception as e:
+                print(f"[ERROR] Malformed JSON from {link}: {e}")
+                print("[DEBUG] Raw content was:\n", raw_content)
+                return
+
+
         
 
 

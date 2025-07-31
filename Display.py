@@ -5,7 +5,7 @@ import pandas as pd
 import os 
 import json 
 import numpy as np 
-import umap 
+import umap
 from Processing import Processing
 
 import os
@@ -40,7 +40,9 @@ class Display_Data:
         in the hovercard to display information
         '''
         vectors_df, meta_df= self.processor.store_vector() # retrieve stored vects and metadata
-
+        if vectors_df.empty:
+            print("[ERROR] No vectors found — skipping UMAP projection.")
+            return pd.DataFrame(columns=['x', 'y', 'Name', 'Summary', 'Sector', 'Funding_Stage'])
         coords = self.project_vector_2d(vectors_df.values) #proj all vects at once to 2d
         df_coords = pd.DataFrame(coords, columns=['x','y'])
 
@@ -92,7 +94,9 @@ class Display_Data:
         '''
         Clears the startup_data table in the sql database
         '''
-        self.processor.cursor.execute('''
-            DELETE FROM startup_info
-        ''')
-        self.processor.conn.commit()
+        import sqlite3
+        conn = sqlite3.connect("meta.sqlite")
+        c = conn.cursor()
+        c.execute("DELETE FROM startup_info")
+        conn.commit()
+        conn.close()
