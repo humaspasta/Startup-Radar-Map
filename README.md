@@ -13,3 +13,15 @@ Functionalities:
 5) Export data enclosed in lasso as a csv.
 
 
+# How to use it:
+1) Clone this repository
+2) Input an API key for perplexity sonar into the .env file
+3) Input desired startups into startups.csv or inputs a file named startups.csv containing a single column with the link of the startups you want analyzed.
+4) Run the main file and when prompted in the terminal, open the link in a browser. This will open the plotly dash UI.
+5) Use the lasso tool to analyze any startups by clicking and enclosing the dots on the chart.
+6) Export the startups in the lasso tool after enclosing by clicking the export button. 
+
+Coming soon:
+1) More data and analytics for each startup
+2) More ways of representing data(e.g csv format, startups plotted in terms of funding)
+3) Improved UI
