@@ -1,2 +1,3 @@
 STARTUP-RADAR-MAP/*.env
 SelectedData.csv
+*.sqlite
