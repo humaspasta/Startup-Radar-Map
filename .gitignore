@@ -5,3 +5,4 @@ vectors.parquet
 meta.sqlite
 __pycache__/Processing.cpython-312.pyc
 __pycache__/Display.cpython-312.pyc
+*.env
