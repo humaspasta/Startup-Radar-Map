@@ -11,7 +11,7 @@ from Processing import Processing
 import os
 class Display_Data:
 
-    def __init__(self, data_path: str ='startups.csv'):
+    def __init__(self, data_path: str = os.path.join('./data', 'startups.csv')):
         self.processor = Processing()
         self.lasso_data = []
         self.umap_model = umap.UMAP(n_components=2, random_state=42) #umap reducer for 2d projection fits once and then transforms 
@@ -39,7 +39,9 @@ class Display_Data:
         X points and Y Points will be used for plotting in 2d and  Startup Name, Summary, Sector, Funding Stage, sources will be used
         in the hovercard to display information
         '''
+        self.processor.vectorize_all()
         vectors_df, meta_df= self.processor.store_vector() # retrieve stored vects and metadata
+
         if vectors_df.empty:
             print("[ERROR] No vectors found — skipping UMAP projection.")
             return pd.DataFrame(columns=['x', 'y', 'Name', 'Summary', 'Sector', 'Funding_Stage'])
@@ -66,8 +68,8 @@ class Display_Data:
             unique_values = list(set(tuple(row) for row in self.lasso_data))
 
             data_interst = pd.DataFrame(unique_values , columns=['x' , 'y' , 'Summary', 'Name' , 'Sector' , 'Sources'])
-            data_interst.to_csv(os.path.join('.' , 'SelectedData.csv')) #create csv or overwrite it if it already exists
-            return dcc.send_file(os.path.join('.' , 'SelectedData.csv'))
+            data_interst.to_csv(os.path.join('./data' , 'SelectedData.csv')) #create csv or overwrite it if it already exists
+            return dcc.send_file(os.path.join('./data' , 'SelectedData.csv'))
 
     def update_log(self):
         '''
@@ -87,7 +89,6 @@ class Display_Data:
         '''
         links = self.data['Links']
         for link in links:
-            
             self.processor.scrape(link)
     
     def clear_cache(self) -> None:
@@ -95,7 +96,7 @@ class Display_Data:
         Clears the startup_data table in the sql database
         '''
         import sqlite3
-        conn = sqlite3.connect("meta.sqlite")
+        conn = sqlite3.connect(os.path.join('./data', 'meta.sqlite'))
         c = conn.cursor()
         c.execute("DELETE FROM startup_info")
         conn.commit()

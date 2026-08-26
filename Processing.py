@@ -12,8 +12,8 @@ class Processing:
 
     def __init__(self):
         
-        env.load_dotenv('info.env') 
-        db_path = os.getenv('DB_FILE', 'meta.sqlite')
+        env.load_dotenv(os.path.join('./data', 'info.env')) 
+        db_path = os.getenv('DB_FILE', os.path.join('./data', 'meta.sqlite'))
         self.conn = sql.connect(db_path) #making connecting to response sql database
         self.cursor = self.conn.cursor()
         self.BASE_URL = 'https://api.perplexity.ai/chat/completions' #The url we use to make requests to SONAR API
@@ -25,11 +25,9 @@ class Processing:
             "Content-Type": "application/json"
         } #api key and format of information sent in request
 
-       
-
         self.model = SentenceTransformer('all-MiniLM-L6-v2')
 
-        self.vectors_path = 'vectors.parquet'
+        self.vectors_path = os.path.join('./data', 'vectors.parquet')
         self.sentance_number = 0
 
         create_table = """CREATE TABLE IF NOT EXISTS  startup_info ( 
@@ -50,7 +48,7 @@ class Processing:
         Gets a JSON file containing information of a given startup for caching.
         Uses perplexity SONAR for retrieving website information. Stores information in sql database. 
         '''
-        
+        print(f'...scraping {link}')
         self.cursor.execute('''SELECT 1 FROM startup_info WHERE link = ? LIMIT 1''' , (link,))
         result = self.cursor.fetchone() #fetches result of cursor execute
 
@@ -87,7 +85,7 @@ class Processing:
                                    
                                 }
                             },
-                            'required' : ['Name' , 'Summary' , 'Sector' , 'Funding_Stage' , 'sources']
+                            'required' : ['Name' , 'Summary' , 'Sector' , 'Funding_Stage' , 'Sources']
                         }
                     }
                 },
@@ -104,6 +102,7 @@ class Processing:
                 return
 
             result = response.json()
+            print(result)
             if "choices" not in result or not result["choices"]:
                 print(f"[ERROR] No choices returned for {link}. Full result:\n{result}")
                 return
@@ -120,9 +119,6 @@ class Processing:
                 print(f"[ERROR] Malformed JSON from {link}: {e}")
                 print("[DEBUG] Raw content was:\n", raw_content)
                 return
-
-
-        
 
 
             self.store(structured_data , link)
@@ -143,11 +139,23 @@ class Processing:
         '''
         
         #creating the table where data will be stored in the database
-        self.cursor.execute('''INSERT INTO startup_info(link, Summary,  Name, Sector, Funding_Stage, sources) VALUES (? , ?, ?, ?, ?, ?)''' ,
-                             (link , response['Summary'], response['Name'], response['Sector'], response['Funding_Stage'], response['sources'])) #caching summary using the link as the key
-        
+        self.cursor.execute('''INSERT INTO startup_info(link, Summary,  Name, Sector, Funding_Stage, Sources) VALUES (? , ?, ?, ?, ?, ?)''' ,
+                             (link ,self.get_field(response, 'Summary'), self.get_field(response, 'Name'), self.get_field(response, 'Sector'), self.get_field(response , 'Funding_Stage'), self.get_field(response , 'Sources'))) #caching summary using the link as the key
+       
         self.conn.commit()#saving changes to database 
     
+
+    def get_field(self, d, key):
+        '''
+        case insensitive lookup
+        '''
+        for k, v in d.items():
+            if k.lower() == key.lower():
+                return v
+        raise KeyError(key)
+
+
+
     
     def vectorize_all(self):
         data = pd.read_sql_query('SELECT * FROM startup_info', self.conn) # load startup info into a DF

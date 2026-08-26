@@ -7,10 +7,11 @@ import os
 import pandas as pd
 
 external_stylesheets = [dbc.themes.DARKLY , 'https://codepen.io/chriddyp/pen/bWLwgP.css']
-display_data = Display_Data(data_path=os.path.join('.' , 'startups.csv'))
+display_data = Display_Data(data_path=os.path.join('./data' , 'startups.csv'))
 
 print('...Scraping Links...')
 display_data.scrape_all_links()
+
 vectors = display_data.get_plottable_vectors()
 
 app = Dash(__name__ , external_stylesheets=external_stylesheets)
@@ -31,7 +32,7 @@ app = Dash(__name__ , external_stylesheets=external_stylesheets)
 # })
 
 #creating scatter plot and adding lasso functionality
-fig = px.scatter(vectors, x="x", y="y", color="Sector", hover_data=["Name" , "Sector", "Funding_Stage"], custom_data=['Name' ,'Sector', 'Funding_Stage', 'Summary', 'Sources'], template='plotly_dark')
+fig = px.scatter(vectors, x="x", y="y", color="Sector", hover_data=["Name" , "Sector", "Funding_Stage"], custom_data=['Name' ,'Sector', 'Funding_Stage', 'Summary' , 'Sources'], template='plotly_dark')
 fig.update_layout(dragmode='lasso', clickmode="event+select") #responsible for 
 #setting layout of the app
 app.layout= html.Div(
@@ -141,7 +142,6 @@ def display_selected_points(selectedData):
         prevent_initial_call = True
 )
 def export_points(n_clicks):
-
     if n_clicks:
         return display_data.export_lasso() , None
     return no_update , no_update
@@ -157,4 +157,4 @@ def handle_clear_cache(n_clicks):
     return "Cache cleared. Re-scraping will now fetch fresh summaries."
 
 if __name__ == '__main__':
-    app.run(debug=False, use_reloader=False)
+    app.run(debug=False, use_reloader=False, host='0.0.0.0', port=8050)
